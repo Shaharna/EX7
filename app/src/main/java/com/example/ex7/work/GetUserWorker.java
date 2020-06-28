@@ -2,6 +2,7 @@ package com.example.ex7.work;
 
 import android.content.Context;
 
+import com.example.ex7.server.UserResponse;
 import com.google.gson.Gson;
 import com.example.ex7.data.Ticket;
 import com.example.ex7.data.User;
@@ -28,9 +29,9 @@ public class GetUserWorker extends Worker {
 
         String userToken = getInputData().getString("key_user_token");
         try {
-            Response<User> response = serverInterface.getUser("token "+userToken).execute();
-            User user = response.body();
-            String userAsJson = new Gson().toJson(user);
+            Response<UserResponse> response = serverInterface.getUser("token "+userToken).execute();
+            UserResponse userResponse = response.body();
+            String userAsJson = new Gson().toJson(userResponse.data);
 
             Data outputData = new Data.Builder()
                     .putString("key_output_user", userAsJson)

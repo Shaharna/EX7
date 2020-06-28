@@ -4,13 +4,15 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
+import java.util.List;
 
 import com.example.ex7.work.GetUserTokenWorker;
 import com.example.ex7.work.ConnectivityCheckWorker;
 import com.example.ex7.work.GetUserWorker;
+import com.example.ex7.data.User;
+import com.google.gson.Gson;
 
 import java.util.UUID;
-
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.Observer;
 import androidx.work.Constraints;
@@ -111,19 +113,27 @@ public class MainActivity extends AppCompatActivity {
                 .build();
 
         WorkManager.getInstance().enqueue(checkConnectivityWork);
-        WorkManager.getInstance().getWorkInfoByIdLiveData(workTagUniqueId)
-                .observe(this, new Observer<WorkInfo>() {
-                    @Override
-                    public void onChanged(WorkInfo info) {
-                        if (info != null && info.getState().isFinished()) {
-                            String user = info.getOutputData().getString("key_output_user");
-                            // ... do something with the result ...
+        WorkManager.getInstance().getWorkInfosByTagLiveData(workTagUniqueId.toString()).observe(this, new Observer<List<WorkInfo>>() {
+            @Override
+            public void onChanged(List<WorkInfo> workInfos) {
+                // we know there will be only 1 work info in this list - the 1 work with that specific tag!
+                // there might be some time until this worker is finished to work (in the mean team we will get an empty list
+                // so check for that
+                if (workInfos == null || workInfos.isEmpty())
+                    return;
 
-                            Log.d("MainActivity", user);
-                        }
-                    }
-                });
+                WorkInfo info = workInfos.get(0);
+
+                // now we can use it
+                String userAsJson = info.getOutputData().getString("key_output_user");
+                Log.d(TAG, "got user: " + userAsJson);
+
+                User user = new Gson().fromJson(userAsJson, User.class);
+                // update UI with the user we got
+            }
+        });
     }
+
 //
 //    private void getAllTicketsForUser(){
 //        UUID workTagUniqueId = UUID.randomUUID();

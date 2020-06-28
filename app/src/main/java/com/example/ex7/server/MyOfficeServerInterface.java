@@ -27,7 +27,7 @@ public interface MyOfficeServerInterface {
 
     //@Headers("Authorization: token {user_token}")
     @GET("/user/")
-    Call<User> getUser(@Header("Authorization") String userToken);
+    Call<UserResponse> getUser(@Header("Authorization") String userToken);
 
 
     @GET("/todos")
