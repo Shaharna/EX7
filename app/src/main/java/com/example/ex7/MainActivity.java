@@ -6,18 +6,25 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.List;
 
+import com.example.ex7.work.GetAllImagesWorker;
 import com.example.ex7.work.GetUserTokenWorker;
 import com.example.ex7.work.GetUserWorker;
 import com.example.ex7.data.User;
+import com.example.ex7.work.SetUserImageWorker;
 import com.example.ex7.work.SetUserPrettyNameWorker;
 import com.google.gson.Gson;
 import com.squareup.picasso.Picasso;
@@ -40,15 +47,16 @@ public class MainActivity extends AppCompatActivity {
     public static final String SP_USER_TOKEN = "user_token";
     private static String TAG = "MainActivity";
     private WorkManager _workManager;
+    int check = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-         _workManager = WorkManager.getInstance(this);
+        _workManager = WorkManager.getInstance(this);
         final SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-        sp.edit().clear().apply();
+        //sp.edit().clear().apply();
         String userToken = sp.getString(SP_USER_TOKEN, null);
 
         final Button setUserNameBtn = findViewById(R.id.main_set_user_name_btn);
@@ -57,18 +65,20 @@ public class MainActivity extends AppCompatActivity {
         final EditText prettyNameText = findViewById(R.id.main_edit_pretty_name);
         final EditText usernameField = findViewById(R.id.main_edit_user_name);
         final ImageView imageView = findViewById(R.id.main_image_view);
+        final Spinner allImagesSpinner = findViewById(R.id.main_images_spinner);
+        final TextView allImagesHeader = findViewById(R.id.main_all_images_header);
 
-        if (userToken == null)
-        {
+        if (userToken == null) {
             ShowAndHideUI(setUserNameBtn, setPrettyNameBtn, erasePrettyNameBtn,
-                    prettyNameText, usernameField,imageView, View.VISIBLE, View.INVISIBLE);
-
-        }
-        else{
+                    prettyNameText, usernameField, imageView, allImagesHeader, allImagesSpinner,
+                    View.VISIBLE, View.INVISIBLE);
+        } else {
             Log.d(TAG, "*** calling get user ***");
             getUser();
             ShowAndHideUI(setUserNameBtn, setPrettyNameBtn, erasePrettyNameBtn,
-                    prettyNameText, usernameField,imageView, View.INVISIBLE, View.VISIBLE);
+                    prettyNameText, usernameField, imageView,
+                    allImagesHeader, allImagesSpinner, View.INVISIBLE, View.VISIBLE);
+            getAllImages();
         }
 
         setUserNameBtn.setOnClickListener(new View.OnClickListener() {
@@ -77,7 +87,8 @@ public class MainActivity extends AppCompatActivity {
                 String userName = usernameField.getText().toString();
                 Log.d(TAG, "*** calling get user token ***");
                 ShowAndHideUI(setUserNameBtn, setPrettyNameBtn, erasePrettyNameBtn,
-                        prettyNameText, usernameField,imageView, View.INVISIBLE, View.VISIBLE);
+                        prettyNameText, usernameField, imageView,
+                        allImagesHeader, allImagesSpinner, View.INVISIBLE, View.VISIBLE);
                 getUserToken(userName);
             }
         });
@@ -100,11 +111,30 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        allImagesSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view,
+                                       int position, long id) {
+                if(++check > 1) {
+                    Object item = adapterView.getItemAtPosition(position);
+                    if (item != null) {
+                        setImageUrl(item.toString());
+                    }
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+
+            }
+        });
     }
 
     private void ShowAndHideUI(Button setUserNameBtn, Button setPrettyNameBtn,
                                Button erasePrettyNameBtn, EditText prettyNameText,
-                               EditText usernameField, ImageView imageView,
+                               EditText usernameField, ImageView imageView, TextView allImagesHeader,
+                               Spinner allImagesSpinner,
                                int visible, int invisible) {
         usernameField.setVisibility(visible);
         setUserNameBtn.setVisibility(visible);
@@ -112,6 +142,8 @@ public class MainActivity extends AppCompatActivity {
         setPrettyNameBtn.setVisibility(invisible);
         erasePrettyNameBtn.setVisibility(invisible);
         imageView.setVisibility(invisible);
+        allImagesHeader.setVisibility(invisible);
+        allImagesSpinner.setVisibility(invisible);
 
     }
 
@@ -135,8 +167,7 @@ public class MainActivity extends AppCompatActivity {
 
                 // now we can use it
                 String userToken = info.getOutputData().getString("key_output_token");
-                if (userToken != null)
-                {
+                if (userToken != null) {
                     SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
                     SharedPreferences.Editor editor = sp.edit();
                     editor.putString(SP_USER_TOKEN, userToken);
@@ -148,7 +179,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void getUser(){
+    private void getUser() {
         final SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         String userToken = sp.getString(SP_USER_TOKEN, null);
         Log.d(TAG, "*** started get user ***");
@@ -174,7 +205,7 @@ public class MainActivity extends AppCompatActivity {
                 progressBar.setVisibility(View.VISIBLE);
                 progressBar.setProgress(info.getProgress().getInt(PROGRESS, 0));
 
-                if(workInfos.get(0).getState() == WorkInfo.State.SUCCEEDED) {
+                if (workInfos.get(0).getState() == WorkInfo.State.SUCCEEDED) {
                     // now we can use it
 
                     progressBar.setProgress(info.getProgress().getInt(PROGRESS, 100));
@@ -186,15 +217,14 @@ public class MainActivity extends AppCompatActivity {
                     updatePrettyNameUI(user);
                     progressBar.setVisibility(View.INVISIBLE);
                 }
-                if (info.getState() == WorkInfo.State.FAILED)
-                {
+                if (info.getState() == WorkInfo.State.FAILED) {
                     ShowFailedToLoadToast();
                 }
             }
         });
     }
 
-    private void setPrettyName(){
+    private void setPrettyName() {
         Log.d(TAG, "*** started set pretty name ***");
         final SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         String userToken = sp.getString(SP_USER_TOKEN, null);
@@ -217,8 +247,7 @@ public class MainActivity extends AppCompatActivity {
                 progressBar.setVisibility(View.VISIBLE);
                 progressBar.setProgress(info.getProgress().getInt(PROGRESS, 0));
 
-                if(info.getState() == WorkInfo.State.SUCCEEDED)
-                {
+                if (info.getState() == WorkInfo.State.SUCCEEDED) {
                     // now we can use it
                     progressBar.setProgress(info.getProgress().getInt(PROGRESS, 100));
                     String userAsJson = info.getOutputData().getString("key_output_user");
@@ -230,8 +259,7 @@ public class MainActivity extends AppCompatActivity {
                     progressBar.setVisibility(View.INVISIBLE);
                 }
 
-                if (info.getState() == WorkInfo.State.FAILED)
-                {
+                if (info.getState() == WorkInfo.State.FAILED) {
                     ShowFailedToLoadToast();
                 }
             }
@@ -252,15 +280,100 @@ public class MainActivity extends AppCompatActivity {
         ImageView imageView = findViewById(R.id.main_image_view);
         String path = String.format("https://hujipostpc2019.pythonanywhere.com/%s", user.image_url);
         Picasso.get().load(path).into(imageView);
-        if(user.pretty_name != null)
-        {
-            if (!user.pretty_name.equals(""))
-            {
+        if (user.pretty_name != null) {
+            if (!user.pretty_name.equals("")) {
                 prettyNameView.setText(String.format("%s%s", HELLO_AGAIN_MSG, user.pretty_name));
                 return;
             }
         }
         prettyNameView.setText(String.format("%s%s", HELLO_AGAIN_MSG, user.username));
+    }
+
+    private void getAllImages() {
+        Log.d(TAG, "*** started get all images ***");
+        UUID workTagUniqueId = UUID.randomUUID();
+        OneTimeWorkRequest getAllImagesWork = new OneTimeWorkRequest.Builder(GetAllImagesWorker.class)
+                .setConstraints(new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+                .addTag(workTagUniqueId.toString())
+                .build();
+
+        _workManager.enqueue(getAllImagesWork);
+        _workManager.getWorkInfosByTagLiveData(workTagUniqueId.toString()).observe(this, new Observer<List<WorkInfo>>() {
+            @Override
+            public void onChanged(List<WorkInfo> workInfos) {
+                // we know there will be only 1 work info in this list - the 1 work with that specific tag!
+                // there might be some time until this worker is finished to work (in the mean team we will get an empty list
+                // so check for that
+                if (workInfos == null || workInfos.isEmpty())
+                    return;
+
+                WorkInfo info = workInfos.get(0);
+
+                if (workInfos.get(0).getState() == WorkInfo.State.SUCCEEDED) {
+                    // now we can use it
+
+                    String[] allImages = info.getOutputData().getStringArray("key_output_all_images_list");
+                    Log.d(TAG, "got user: " + allImages.toString());
+                    setAllImagesRadioGroup(allImages);
+                    // update UI with the user we got
+                }
+                if (info.getState() == WorkInfo.State.FAILED) {
+                    ShowFailedToLoadToast();
+                }
+            }
+        });
+    }
+
+    private void setAllImagesRadioGroup(String[] allImages) {
+        final Spinner imageSpinner = findViewById(R.id.main_images_spinner);
+
+        ArrayAdapter<String> spinnerArrayAdapter = new ArrayAdapter<String>
+                (this, android.R.layout.simple_spinner_item, allImages); //selected item will look like a spinner set from XML
+        spinnerArrayAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        imageSpinner.setAdapter(spinnerArrayAdapter);
+
+    }
+
+    private void setImageUrl(String imageUrl) {
+        Log.d(TAG, "*** started set image url ***");
+        final SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        String userToken = sp.getString(SP_USER_TOKEN, null);
+        UUID workTagUniqueId = UUID.randomUUID();
+        OneTimeWorkRequest setImageUrlWorker = new OneTimeWorkRequest.Builder(SetUserImageWorker.class)
+                .setConstraints(new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+                .setInputData(new Data.Builder().putString("key_user_token", userToken)
+                        .putString("key_user_image_url", imageUrl).build())
+                .addTag(workTagUniqueId.toString())
+                .build();
+
+        _workManager.enqueue(setImageUrlWorker);
+        _workManager.getWorkInfosByTagLiveData(workTagUniqueId.toString()).observe(this, new Observer<List<WorkInfo>>() {
+            @Override
+            public void onChanged(List<WorkInfo> workInfos) {
+                if (workInfos == null || workInfos.isEmpty())
+                    return;
+                WorkInfo info = workInfos.get(0);
+                ProgressBar progressBar = findViewById(R.id.main_progress_bar);
+                progressBar.setVisibility(View.VISIBLE);
+                progressBar.setProgress(info.getProgress().getInt(PROGRESS, 0));
+
+                if (info.getState() == WorkInfo.State.SUCCEEDED) {
+                    // now we can use it
+                    progressBar.setProgress(info.getProgress().getInt(PROGRESS, 100));
+                    String userAsJson = info.getOutputData().getString("key_output_user");
+                    Log.d(TAG, "got user: " + userAsJson);
+
+                    User user = new Gson().fromJson(userAsJson, User.class);
+                    // update UI with the user we got
+                    updatePrettyNameUI(user);
+                    progressBar.setVisibility(View.INVISIBLE);
+                }
+
+                if (info.getState() == WorkInfo.State.FAILED) {
+                    ShowFailedToLoadToast();
+                }
+            }
+        });
     }
 
 }

@@ -1,23 +1,22 @@
 package com.example.ex7.server;
 
-import com.example.ex7.data.User;
-
 import org.json.JSONObject;
 
-import java.util.Map;
 
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
 import retrofit2.http.Header;
 import retrofit2.http.Headers;
-import retrofit2.http.HeaderMap;
 import retrofit2.http.POST;
 import retrofit2.http.PUT;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
 
 public interface MyOfficeServerInterface {
+
+    @GET("/images/all/")
+    Call<AllImagesResponse> getAllImages();
 
     @GET("/users/{user_name}/token/")
     Call<TokenResponse> getToken(@Path("user_name") String userName);
@@ -28,6 +27,10 @@ public interface MyOfficeServerInterface {
     @Headers({"Content-Type: application/json"})
     @POST("/user/edit/")
     Call<UserResponse> setPrettyName(@Header("Authorization") String userToken, @Body SetUserPrettyNameRequest request);
+
+    @Headers({"Content-Type: application/json"})
+    @POST("/user/edit/")
+    Call<UserResponse> setImageUrl(@Header("Authorization") String userToken, @Body SetUserImageRequest request);
 
 }
 

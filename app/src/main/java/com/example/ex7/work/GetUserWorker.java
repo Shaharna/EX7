@@ -32,8 +32,7 @@ public class GetUserWorker extends Worker {
         String userToken = getInputData().getString("key_user_token");
         try {
             String tokenValue = "token " + userToken;
-            Call<UserResponse> test = serverInterface.getUser(tokenValue);
-            Response<UserResponse> response= test.execute();
+            Response<UserResponse> response = serverInterface.getUser(tokenValue).execute();
             User userResponse = response.body().data;
             String userAsJson = new Gson().toJson(userResponse);
 
