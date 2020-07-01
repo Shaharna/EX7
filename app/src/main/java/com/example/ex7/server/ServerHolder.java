@@ -2,23 +2,24 @@ package com.example.ex7.server;
 
 import android.content.Context;
 import okhttp3.OkHttpClient;
+import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 public class ServerHolder {
     private static ServerHolder instance = null;
 
-
     public synchronized static ServerHolder getInstance() {
         if (instance != null)
             return instance;
 
-        OkHttpClient client = new OkHttpClient.Builder()
-                .build();
+        HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
+        interceptor.level(HttpLoggingInterceptor.Level.BODY);
+        OkHttpClient client = new OkHttpClient.Builder().addInterceptor(interceptor).build();
 
         Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl("https://hujipostpc2019.pythonanywhere.com/")
                 .client(client)
-                .baseUrl("https://hujipostpc2019.pythonanywhere.com/") // notice the absence of the last slash!
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
 
@@ -26,7 +27,6 @@ public class ServerHolder {
         instance = new ServerHolder(serverInterface);
         return instance;
     }
-
 
     public final MyOfficeServerInterface serverInterface;
 

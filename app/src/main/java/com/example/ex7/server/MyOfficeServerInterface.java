@@ -1,17 +1,17 @@
 package com.example.ex7.server;
 
-import com.example.ex7.data.Ticket;
 import com.example.ex7.data.User;
 
 import org.json.JSONObject;
 
-import java.util.List;
+import java.util.Map;
 
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
 import retrofit2.http.Header;
 import retrofit2.http.Headers;
+import retrofit2.http.HeaderMap;
 import retrofit2.http.POST;
 import retrofit2.http.PUT;
 import retrofit2.http.Path;
@@ -19,24 +19,15 @@ import retrofit2.http.Query;
 
 public interface MyOfficeServerInterface {
 
-    @GET("/users/0")
-    Call<User> connectivityCheck();
-
     @GET("/users/{user_name}/token/")
     Call<TokenResponse> getToken(@Path("user_name") String userName);
 
-    //@Headers("Authorization: token {user_token}")
     @GET("/user/")
     Call<UserResponse> getUser(@Header("Authorization") String userToken);
 
-
-    @GET("/todos")
-    Call<List<Ticket>> getAllTicketsForUser(@Query("user_id") String userId);
-
-
-    // the result will be the ticket as was created in the server (e.g. change in the "id" field, etc)
-    @POST("/todos")
-    Call<Ticket> insertNewTicket(@Body Ticket ticket);
+    @Headers({"Content-Type: application/json"})
+    @POST("/user/edit/")
+    Call<UserResponse> setPrettyName(@Header("Authorization") String userToken, @Body SetUserPrettyNameRequest request);
 
 }
 

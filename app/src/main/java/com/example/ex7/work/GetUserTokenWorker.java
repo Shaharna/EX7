@@ -38,13 +38,11 @@ public class GetUserTokenWorker extends Worker {
             String token = TokenResponse.data;
 
             Data outputData = new Data.Builder()
-                    .putString("key_output_user", token)
+                    .putString("key_output_token", token)
                     .build();
+
             Log.d("TokenWorker", token);
-            SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-            SharedPreferences.Editor editor = sp.edit();
-            editor.putString(SP_USER_TOKEN, outputData.getString("key_output_user"));
-            editor.apply();
+
             return Result.success(outputData);
 
         } catch (IOException e) {

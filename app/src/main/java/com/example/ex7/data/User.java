@@ -1,7 +1,7 @@
 package com.example.ex7.data;
 
 public class User {
-    public String userName;
-    public String prettyName;
-    public String imageUrl;
+    public String username;
+    public String pretty_name;
+    public String image_url;
 }
