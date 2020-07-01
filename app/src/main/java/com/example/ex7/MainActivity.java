@@ -57,7 +57,6 @@ public class MainActivity extends AppCompatActivity {
 
         _workManager = WorkManager.getInstance(this);
         final SharedPreferences sp = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-        //sp.edit().clear().apply();
         String userToken = sp.getString(SP_USER_TOKEN, null);
 
         final Button setUserNameBtn = findViewById(R.id.main_set_user_name_btn);
