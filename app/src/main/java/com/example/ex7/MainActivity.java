@@ -12,12 +12,11 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
-import android.widget.RadioButton;
-import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import com.example.ex7.work.GetAllImagesWorker;
@@ -30,6 +29,9 @@ import com.google.gson.Gson;
 import com.squareup.picasso.Picasso;
 
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.Observer;
 import androidx.work.Constraints;
@@ -41,7 +43,6 @@ import androidx.work.WorkManager;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String PROGRESS = "PROGRESS";
     public static final String HELLO_AGAIN_MSG = "Hello again, ";
     private String _prettyName;
     public static final String SP_USER_TOKEN = "user_token";
@@ -78,7 +79,6 @@ public class MainActivity extends AppCompatActivity {
             ShowAndHideUI(setUserNameBtn, setPrettyNameBtn, erasePrettyNameBtn,
                     prettyNameText, usernameField, imageView,
                     allImagesHeader, allImagesSpinner, View.INVISIBLE, View.VISIBLE);
-            getAllImages();
         }
 
         setUserNameBtn.setOnClickListener(new View.OnClickListener() {
@@ -203,12 +203,9 @@ public class MainActivity extends AppCompatActivity {
                 WorkInfo info = workInfos.get(0);
                 ProgressBar progressBar = findViewById(R.id.main_progress_bar);
                 progressBar.setVisibility(View.VISIBLE);
-                progressBar.setProgress(info.getProgress().getInt(PROGRESS, 0));
 
                 if (workInfos.get(0).getState() == WorkInfo.State.SUCCEEDED) {
                     // now we can use it
-
-                    progressBar.setProgress(info.getProgress().getInt(PROGRESS, 100));
                     String userAsJson = info.getOutputData().getString("key_output_user");
                     Log.d(TAG, "got user: " + userAsJson);
 
@@ -216,6 +213,7 @@ public class MainActivity extends AppCompatActivity {
                     // update UI with the user we got
                     updatePrettyNameUI(user);
                     progressBar.setVisibility(View.INVISIBLE);
+                    getAllImages(user);
                 }
                 if (info.getState() == WorkInfo.State.FAILED) {
                     ShowFailedToLoadToast();
@@ -245,11 +243,9 @@ public class MainActivity extends AppCompatActivity {
                 WorkInfo info = workInfos.get(0);
                 ProgressBar progressBar = findViewById(R.id.main_progress_bar);
                 progressBar.setVisibility(View.VISIBLE);
-                progressBar.setProgress(info.getProgress().getInt(PROGRESS, 0));
 
                 if (info.getState() == WorkInfo.State.SUCCEEDED) {
                     // now we can use it
-                    progressBar.setProgress(info.getProgress().getInt(PROGRESS, 100));
                     String userAsJson = info.getOutputData().getString("key_output_user");
                     Log.d(TAG, "got user: " + userAsJson);
 
@@ -289,7 +285,7 @@ public class MainActivity extends AppCompatActivity {
         prettyNameView.setText(String.format("%s%s", HELLO_AGAIN_MSG, user.username));
     }
 
-    private void getAllImages() {
+    private void getAllImages(final User user) {
         Log.d(TAG, "*** started get all images ***");
         UUID workTagUniqueId = UUID.randomUUID();
         OneTimeWorkRequest getAllImagesWork = new OneTimeWorkRequest.Builder(GetAllImagesWorker.class)
@@ -314,7 +310,7 @@ public class MainActivity extends AppCompatActivity {
 
                     String[] allImages = info.getOutputData().getStringArray("key_output_all_images_list");
                     Log.d(TAG, "got user: " + allImages.toString());
-                    setAllImagesRadioGroup(allImages);
+                    setAllImagesSpinner(allImages, user);
                     // update UI with the user we got
                 }
                 if (info.getState() == WorkInfo.State.FAILED) {
@@ -324,11 +320,29 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void setAllImagesRadioGroup(String[] allImages) {
+    private void setAllImagesSpinner(String[] allImages, User user) {
         final Spinner imageSpinner = findViewById(R.id.main_images_spinner);
-
-        ArrayAdapter<String> spinnerArrayAdapter = new ArrayAdapter<String>
-                (this, android.R.layout.simple_spinner_item, allImages); //selected item will look like a spinner set from XML
+        ArrayList<String> imagesList = new ArrayList<>();
+        String regex = "/images/(.*).png";
+        Pattern r = Pattern.compile(regex);
+        for (String imageUrl: allImages)
+        {
+            Matcher m = r.matcher(imageUrl);
+            if (m.find())
+            {
+                String imageUIName = m.group(1);
+                if (imageUrl.equals(user.image_url))
+                {
+                    imagesList.set(0, imageUIName);
+                }
+                else
+                {
+                    imagesList.add(imageUIName);
+                }
+            }
+        }
+        ArrayAdapter<String> spinnerArrayAdapter = new ArrayAdapter<>
+                (this, android.R.layout.simple_spinner_item, imagesList); //selected item will look like a spinner set from XML
         spinnerArrayAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         imageSpinner.setAdapter(spinnerArrayAdapter);
 
@@ -342,7 +356,7 @@ public class MainActivity extends AppCompatActivity {
         OneTimeWorkRequest setImageUrlWorker = new OneTimeWorkRequest.Builder(SetUserImageWorker.class)
                 .setConstraints(new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
                 .setInputData(new Data.Builder().putString("key_user_token", userToken)
-                        .putString("key_user_image_url", imageUrl).build())
+                        .putString("key_user_image_url", ("/images/").concat(imageUrl).concat(".png")).build())
                 .addTag(workTagUniqueId.toString())
                 .build();
 
@@ -355,11 +369,9 @@ public class MainActivity extends AppCompatActivity {
                 WorkInfo info = workInfos.get(0);
                 ProgressBar progressBar = findViewById(R.id.main_progress_bar);
                 progressBar.setVisibility(View.VISIBLE);
-                progressBar.setProgress(info.getProgress().getInt(PROGRESS, 0));
 
                 if (info.getState() == WorkInfo.State.SUCCEEDED) {
                     // now we can use it
-                    progressBar.setProgress(info.getProgress().getInt(PROGRESS, 100));
                     String userAsJson = info.getOutputData().getString("key_output_user");
                     Log.d(TAG, "got user: " + userAsJson);
 
